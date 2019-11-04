@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 import sys
-
+import os
+import time
 
 def genGaussiankernel(width, sigma):
     x = np.arange(-int(width/2), int(width/2)+1, 1, dtype=np.float32)
@@ -29,7 +30,7 @@ def pyramid(im, sigma=1, prNum=6):
     # upsample
     for i in range(1, 6):
         curr_im = pyramids[i]
-        for j in xrange(i):
+        for j in range(i):
             if j < i-1:
                 im_size = (curr_im.shape[1]*2, curr_im.shape[0]*2)
             else:
@@ -103,7 +104,7 @@ def foveat_img(im, fixs):
         if np.sum(ind) > 0:
             Ms[i][ind] = Bs[i][ind]
 
-    print('num of full-res pixel', np.sum(Ms[0] == 1))
+    #print('num of full-res pixel', np.sum(Ms[0] == 1))
     # generate periphery image
     im_fov = np.zeros_like(As[0], dtype=np.float32)
     for M, A in zip(Ms, As):
@@ -113,17 +114,52 @@ def foveat_img(im, fixs):
     im_fov = im_fov.astype(np.uint8)
     return im_fov
 
+"""
+Original __main__
+"""
+# if __name__ == "__main__":
+#     if len(sys.argv) != 2:
+#         print("Wrong format: python retina_transform.py [image_path]")
+#         exit(-1)
+
+#     im_path = sys.argv[1]
+#     im = cv2.imread(im_path)
+#     print(im)
+#     # im = cv2.resize(im, (512, 320), cv2.INTER_CUBIC)
+#     xc, yc = int(im.shape[1]/2), int(im.shape[0]/2)
+
+#     im = foveat_img(im, [(xc, yc)])
+
+#     cv2.imwrite(im_path.split('.')[0]+'_RT.jpg', im)
+
+"""
+Johan's __main__
+""" 
+
+def fill_fov(im):
+    fov_points = []
+    for i in range(1, 10, 2):
+        for j in range(1, 10, 2):
+            fov_points.append((int(im.shape[1]*(i/10)), int(im.shape[0]*(j/10))))
+    return fov_points
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Wrong format: python retina_transform.py [image_path]")
         exit(-1)
 
-    im_path = sys.argv[1]
-    im = cv2.imread(im_path)
-    # im = cv2.resize(im, (512, 320), cv2.INTER_CUBIC)
-    xc, yc = int(im.shape[1]/2), int(im.shape[0]/2)
-
-    im = foveat_img(im, [(xc, yc)])
-
-    cv2.imwrite(im_path.split('.')[0]+'_RT.jpg', im)
+    folder_path = sys.argv[1]
+    im_paths = os.listdir(folder_path)      
+    for im_path in im_paths:
+        start = time.time()
+        im = cv2.imread(folder_path + '/' + im_path)
+        dirname = folder_path + '/' + im_path.split('.')[0]
+        os.mkdir(dirname)
+        fov_points = fill_fov(im)
+        for i, fov_point in enumerate(fov_points):
+            xc, yc = fov_point
+            temp = foveat_img(im, [(xc, yc)])
+            cv2.circle(temp, (xc, yc), 5, (0, 0, 255) , -1)
+            cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_' + str(i) +'_RT.jpg', temp)
+        end = time.time()
+        print("done with: " + im_path + " in " + str(end-start) + " seconds.")
