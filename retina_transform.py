@@ -150,15 +150,23 @@ if __name__ == "__main__":
 
     folder_path = sys.argv[1]
     im_paths = os.listdir(folder_path)      
+
+    input_size = 224
+    resize_size = int(input_size/0.875) #256 for input_size 224
+    margin = int((resize_size - input_size)/2)
+
     for im_path in im_paths:
         start = time.time()
         im = cv2.imread(folder_path + '/' + im_path)
+        print(im)
+        resized_im = cv2.resize(im, (256, 256))
+        cropped_im = resized_im[margin:-margin, margin:-margin]
         dirname = folder_path + '/' + im_path.split('.')[0]
         os.mkdir(dirname)
-        fov_points = fill_fov(im)
+        fov_points = fill_fov(cropped_im)
         for i, fov_point in enumerate(fov_points):
             xc, yc = fov_point
-            temp = foveat_img(im, [(xc, yc)])
+            temp = foveat_img(cropped_im, [(xc, yc)])
             cv2.circle(temp, (xc, yc), 5, (0, 0, 255) , -1)
             cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_' + str(i) +'_RT.jpg', temp)
         end = time.time()
