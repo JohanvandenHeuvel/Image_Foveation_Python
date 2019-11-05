@@ -138,10 +138,12 @@ Johan's __main__
 
 def fill_fov(im):
     fov_points = []
+    indices = []
     for i in range(1, 10, 2):
         for j in range(1, 10, 2):
+            indices.append((i,j))
             fov_points.append((int(im.shape[1]*(i/10)), int(im.shape[0]*(j/10))))
-    return fov_points
+    return indices, fov_points
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -158,16 +160,16 @@ if __name__ == "__main__":
     for im_path in im_paths:
         start = time.time()
         im = cv2.imread(folder_path + '/' + im_path)
-        print(im)
         resized_im = cv2.resize(im, (256, 256))
         cropped_im = resized_im[margin:-margin, margin:-margin]
         dirname = folder_path + '/' + im_path.split('.')[0]
         os.mkdir(dirname)
-        fov_points = fill_fov(cropped_im)
+        indices, fov_points = fill_fov(cropped_im)
         for i, fov_point in enumerate(fov_points):
             xc, yc = fov_point
             temp = foveat_img(cropped_im, [(xc, yc)])
-            cv2.circle(temp, (xc, yc), 5, (0, 0, 255) , -1)
-            cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_' + str(i) +'_RT.jpg', temp)
+            # adding a red dot so that spotting the foveation point is easier
+            # cv2.circle(temp, (xc, yc), 5, (0, 0, 255) , -1)
+            cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_' + str(indices[i]) +'_RT.jpg', temp)
         end = time.time()
         print("done with: " + im_path + " in " + str(end-start) + " seconds.")
