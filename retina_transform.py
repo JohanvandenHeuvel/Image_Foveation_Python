@@ -54,9 +54,9 @@ def foveat_img(im, fixs):
     height, width, _ = im.shape
     
     # compute coef
-    p = 7.5
-    k = 3
-    alpha = 2.5
+    p = 1 # blur strength
+    k = 3 # size of foveation
+    alpha = 5 # also size?
 
     x = np.arange(0, width, 1, dtype=np.float32)
     y = np.arange(0, height, 1, dtype=np.float32)
@@ -104,7 +104,7 @@ def foveat_img(im, fixs):
         if np.sum(ind) > 0:
             Ms[i][ind] = Bs[i][ind]
 
-    #print('num of full-res pixel', np.sum(Ms[0] == 1))
+    print('num of full-res pixel', np.sum(Ms[0] == 1))
     # generate periphery image
     im_fov = np.zeros_like(As[0], dtype=np.float32)
     for M, A in zip(Ms, As):
@@ -136,14 +136,66 @@ Original __main__
 Johan's __main__
 """ 
 
-def fill_fov(im):
-    fov_points = []
-    indices = []
-    for i in range(1, 10, 2):
-        for j in range(1, 10, 2):
-            indices.append((i,j))
-            fov_points.append((int(im.shape[1]*(i/10)), int(im.shape[0]*(j/10))))
-    return indices, fov_points
+# # TODO given I use resizing and cropping no need to repeat this function for every image
+# def fill_fov(im):
+#     fov_points = []
+#     indices = []
+
+#     # loop over the image row by row
+#     for i in range(1, 10, 2):
+#         for j in range(1, 10, 2):
+#             indices.append((i,j))
+#             fov_points.append((int(im.shape[1]*(i/10)), int(im.shape[0]*(j/10))))
+
+#     # also return indices because those are needed to correctly name the output files
+#     return indices, fov_points
+
+# if __name__ == "__main__":
+#     if len(sys.argv) != 2:
+#         print("Wrong format: python retina_transform.py [image_path]")
+#         exit(-1)
+
+#     folder_path = sys.argv[1]
+#     im_paths = os.listdir(folder_path)      
+
+#     # image transformation - parameters
+#     # this is needed because otherwise foveation point outside of cropped area
+#     input_size = 224
+#     resize_size = int(input_size/0.875) #256 for input_size 224
+#     margin = int((resize_size - input_size)/2)
+
+#     for im_path in im_paths:
+#         start = time.time()
+#         im = cv2.imread(folder_path + '/' + im_path)
+
+#         # image transformation - application
+#         resized_im = cv2.resize(im, (256, 256))
+#         cropped_im = resized_im[margin:-margin, margin:-margin]
+
+#         dirname = folder_path + '/' + im_path.split('.')[0]
+#         os.mkdir(dirname)
+
+        
+
+#         indices, fov_points = fill_fov(cropped_im)
+
+#         for i, fov_point in enumerate(fov_points):
+#             xc, yc = fov_point
+#             temp = foveat_img(cropped_im, [(xc, yc)])
+#             #adding a red dot so that spotting the foveation point is easier
+#             #cv2.circle(temp, (xc, yc), 5, (0, 0, 255) , -1)
+
+#             # TODO make sure the filenames are more robust
+#             # for the specific application of a pytorch dataloader, make sure the names are getting ordered correctly.
+#             cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_' + str(indices[i]) +'_RT.jpg', temp)
+
+#         end = time.time()
+#         print("done with: " + im_path + " in " + str(end-start) + " seconds.")
+
+"""
+Second main
+"""
+        
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -153,23 +205,42 @@ if __name__ == "__main__":
     folder_path = sys.argv[1]
     im_paths = os.listdir(folder_path)      
 
+    # image transformation - parameters
+    # this is needed because otherwise foveation point outside of cropped area
     input_size = 224
     resize_size = int(input_size/0.875) #256 for input_size 224
     margin = int((resize_size - input_size)/2)
 
+    # dirname = 'E:\\ILSVRC2017\\newimages\\notfoveated\\n01531178'
+    dirname = 'E:\ILSVRC2017\multiplefoveationsTEST\\result'
+    os.mkdir(dirname)
+
     for im_path in im_paths:
         start = time.time()
         im = cv2.imread(folder_path + '/' + im_path)
+
+        # image transformation - application
         resized_im = cv2.resize(im, (256, 256))
         cropped_im = resized_im[margin:-margin, margin:-margin]
-        dirname = folder_path + '/' + im_path.split('.')[0]
-        os.mkdir(dirname)
-        indices, fov_points = fill_fov(cropped_im)
-        for i, fov_point in enumerate(fov_points):
-            xc, yc = fov_point
-            temp = foveat_img(cropped_im, [(xc, yc)])
-            # adding a red dot so that spotting the foveation point is easier
-            # cv2.circle(temp, (xc, yc), 5, (0, 0, 255) , -1)
-            cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_' + str(indices[i]) +'_RT.jpg', temp)
+
+        # xc, yc = int(cropped_im.shape[1]/2), int(cropped_im.shape[0]/2)
+        # foveated_im = foveat_img(cropped_im, [(xc, yc)])
+        # cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '.jpg', cropped_im)
+
+        xc1, yc1 = (int(cropped_im.shape[1]*(5/10)), int(cropped_im.shape[0]*(5/10)))
+        xc2, yc2 = (int(cropped_im.shape[1]*(7/10)), int(cropped_im.shape[0]*(5/10)))
+
+        # foveated_im = foveat_img(cropped_im, [(xc1, yc1)])
+        # cv2.circle(foveated_im, (xc1, yc1), 5, (0, 0, 255) , -1)
+        # cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_1.jpg', foveated_im)
+
+        # foveated_im = foveat_img(cropped_im, [(xc1, yc1), (xc2, yc2)])
+        # cv2.circle(foveated_im, (xc1, yc1), 5, (0, 0, 255) , -1)
+        # cv2.circle(foveated_im, (xc2, yc2), 5, (0, 0, 255) , -1)
+        # cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_2.jpg', foveated_im)
+        
+        # cv2.imwrite(dirname + '/' + im_path.split('.')[0] + '_RT.jpg', foveated_im)
+
+
         end = time.time()
         print("done with: " + im_path + " in " + str(end-start) + " seconds.")
